@@ -1,0 +1,110 @@
+---
+title: "Lab 2"
+author: "Popov Ivan"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+# Task 1
+
+## ЗАДАНИЕ 19
+
+Используйте файл Payment_and_value_of_Care-Hospital.csv Напишите
+функцию, которая на вход принимает название города и название
+медицинской процедуры/заболевания, а на выход выдает именованный список,
+в котором в качестве имен используется название больницы в которой можно
+получить медицинскую помощь, а качестве значений -- усредненная
+стоимость услуги в данной больнице. Список должен быть упорядочен по
+возрастанию значения стоимости услуги.
+
+```{r}
+
+df <- read.csv("Payment_and_value_of_care_-_Hospital.csv",sep=',',allowEscapes=TRUE)
+
+get_disease <- function(display_name) {
+  display_name <- gsub("Value of Care ", "", display_name)
+  display_name <- gsub(" measure", "", display_name)
+  return(display_name)
+}
+  
+payment_to_numerical<-function(payment) {
+  if (payment == 'Not Available')
+    return(NA)
+  payment_formatted = gsub(",",".",gsub("\\$","",payment))
+  return(as.numeric(payment_formatted))
+}
+
+# INPUT DISEASE VALUE INTO FUNCTION ARGUMENT FROM THIS LIST
+diseases = lapply(unique(df['Value.of.care.display.name']$Value.of.care.display.name), get_disease)
+
+avg_cost_to_hospital <- function(df, city, disease){
+  que = get_disease(df$Value.of.care.display.name) == disease & df$City == city
+  qued_df = df[que, c("Hospital.name", "Payment")]
+  cities = unique(qued_df$Hospital.name)
+  res = setNames(integer(length(cities)), cities)
+  for (city in cities) {
+    payments = payment_to_numerical(qued_df[qued_df$Hospital.name == city, "Payment"])
+    res[city] = mean(payments)
+  }
+  return(sort(res, na.last = TRUE))
+}
+
+# EXAMPLE
+avg_cost_to_hospital(df, "LAS VEGAS", "Heart Failure")
+```
+
+# Task 2
+
+## ЗАДАНИЕ 7
+
+Используйте файл ExpImp.Rdata Напишите функцию, которая по названию
+субъекта федерации выводит значения суммарного экспорта и суммарного
+импорта по этому субъекту федерации, а также федеральный округ, к
+которому этот субъект федерации относится.
+
+```{r}
+
+
+load("data/ExpImp.RData")
+
+df <- ExpImp
+
+subject_to_district <- function(df, subject) {
+  districts = df[grep("федеральный округ", df$Регион), ]
+  districts_ind = as.numeric(rownames(k))
+  subj_ind = as.numeric(rownames(df[df$Регион == subject, ]))
+  if (subj_ind %in% districts_ind | subj_ind == 1) {
+    return(subject)
+  }
+  n = length(districts_ind)
+  if (subj_ind > districts_ind[[n]])
+    return(df[districts_ind[[n]],"Регион"])
+  
+  for (ind in 1:(n - 1)) {
+    if (subj_ind > districts_ind[[ind]] & subj_ind < districts_ind[[ind + 1]])
+      return(df[districts_ind[ind],"Регион"])
+  }
+}
+
+subject_saldo_district <- function(df, subject) {
+  res = list(total_export = 0,
+             total_import = 0,
+             district = '')
+  res["total_export"] = sum(as.numeric(df[df$Регион == subject,grep("Экспорт", names(df))]))
+  res["total_import"] = sum(as.numeric(df[df$Регион == subject,grep("Импорт", names(df))]))
+  res["district"] = subject_to_district(df, subject)
+  return(res)
+}
+
+# EXAMPLE
+subject_saldo_district(ExpImp, "Республика Дагестан")
+
+
+
+
+```
